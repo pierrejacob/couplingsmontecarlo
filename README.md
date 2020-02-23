@@ -6,4 +6,4 @@ Corresponds to the course available at:
 https://sites.google.com/site/pierrejacob/cmclectures
 
 Scripts:
-- 1basicmontecarlo.R: reproduces the figures of the first chapter of the lecture notes
+- Scripts starting with a number are associated with figures in corresponding chapter of the lecture notes. 
