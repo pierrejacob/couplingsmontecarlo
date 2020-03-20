@@ -1,7 +1,10 @@
 rm(list=ls())
-source("commongrounds.R")
+
 library(ggplot2)
+theme_set(theme_void())
 library(gridExtra)
+
+colors <- c(rgb(1, 0.1, 0.3), rgb(0.3, 0.1, 1))
 
 ## various couplings
 

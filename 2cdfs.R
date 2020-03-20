@@ -1,9 +1,10 @@
 rm(list=ls())
-source("commongrounds.R")
-library(doParallel)
-library(doRNG)
+
+library(ggplot2)
+theme_set(theme_void())
 library(gridExtra)
-registerDoParallel(cores=10)
+
+colors <- c(rgb(1, 0.1, 0.3), rgb(0.3, 0.1, 1))
 
 ## two distributions in [0,1]
 ## density p
@@ -13,7 +14,7 @@ densityp <- function(x){
             0.25 * dbeta(x, 10, 45)
         }
 ## density q +
-densityq = function(x) exp(dbeta(x, 4, 4, log=T) + cos(5*pi*x)) }
+densityq = function(x) exp(dbeta(x, 4, 4, log=T) + cos(5*pi*x))
 
 constantq <- integrate(densityq, 0, 1)$val
 

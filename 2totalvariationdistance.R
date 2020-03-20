@@ -1,6 +1,9 @@
 rm(list=ls())
-source("commongrounds.R")
+
 library(ggplot2)
+theme_set(theme_void())
+
+colors <- c(rgb(1, 0.1, 0.3), rgb(0.3, 0.1, 1))
 
 ## visualization of TV bounds
 p <- function(x) dbeta(x, 5, 5)
