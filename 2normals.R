@@ -1,5 +1,4 @@
 rm(list=ls())
-source("commongrounds.R")
 
 library(mvtnorm)
 library(hexbin)

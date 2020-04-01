@@ -2,6 +2,11 @@
 .Rhistory
 .Rapp.history
 
+# Files
+.DS_Store
+.ipynb_checkpoints/
+__pycache__/
+
 # Session Data files
 .RData
 
