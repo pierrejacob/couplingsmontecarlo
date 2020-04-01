@@ -79,7 +79,8 @@ g <- gridExtra::grid.arrange(gmargx, empty, gscatter, gmargy,
 
 # optimal transport coupling
 transport_samples <- matrix(0, nrow=nsamples, ncol=2)
-transport_samples[, 1] <- reflmax_samples[, 1] + transport_samples[, 1]
+transport_samples[, 1] <- reflmax_samples[, 1]
+transport_samples[, 2] <- mu2 - mu1 + transport_samples[, 1]
 
 gscatter <- qplot(x=transport_samples[, 1], y=transport_samples[, 2],
                  geom="blank") +
