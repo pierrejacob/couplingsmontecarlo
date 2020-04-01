@@ -125,10 +125,10 @@ if __name__ == '__main__':
     step = 5
     p_samp = p_samples[::step]
     q_samp = q_samples[::step]
-    lines = np.c_[q_samp,
-                  np.zeros_like(q_samp),
-                  p_samp,
-                  np.ones_like(p_samp)].reshape(nsamples // step, 2, 2)
+    lines = np.c_[p_samp,
+                  np.zeros_like(p_samp),
+                  q_samp,
+                  np.ones_like(q_samp)].reshape(nsamples // step, 2, 2)
     ax.add_collection(LineCollection(lines, linewidths=0.01, colors='k'))
     ax.scatter(p_samples, np.zeros_like(p_samples), s=0.1)
     ax.scatter(q_samples, np.ones_like(q_samples), s=0.1)

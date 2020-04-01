@@ -119,8 +119,7 @@ def optimal_transport_two_gaussians(mu_1, cov_1, mu_2, cov_2, nsamples=1, random
 
 
 def common_random_number_coupling(p, q, nsamples=1, random_state=None):
-    """Rejection sampler to obtain pairs (X, Y) such that :math:`X \\sim p`, :math:`Y \\sim q` and the event :math:`\\{X=Y\\}` occurs with maximal probability.
-
+    """
     :param p:
         distribution of X with methods
 
