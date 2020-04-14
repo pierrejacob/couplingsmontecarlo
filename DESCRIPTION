@@ -1,0 +1,19 @@
+Package: couplingsmontecarlo
+Type: Package
+Title: Couplings and Monte Carlo
+Version: 0.0.1
+Author: Pierre E Jacob
+Maintainer: Pierre E Jacob <pjacob@fas.harvard.edu>
+Description: This package is what it is.
+License: GPL (>= 3)
+Encoding: UTF-8
+Depends:
+    Rcpp,RcppEigen
+Imports:
+    Rcpp (>= 0.11.6),RcppEigen
+LinkingTo: Rcpp,RcppEigen
+RoxygenNote: 7.1.0
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
