@@ -1,10 +1,7 @@
-rm(list = ls())
-
-library(ggplot2)
-theme_set(theme_void())
-library(gridExtra)
-
-colors <- c(rgb(1, 0.1, 0.3), rgb(0.3, 0.1, 1))
+rm(list=ls())
+set.seed(1)
+library(couplingsmontecarlo)
+graphsettings <- set_theme_chapter2()
 
 ## rejection sampler to obtain pairs (X,Y)
 ## such that X ~ p and Y ~ q
@@ -46,10 +43,10 @@ gscatter <- qplot(x=res[1,], y=res[2,],
             geom_point(alpha=0.5)
 gmargx <- qplot(x=res[1,], geom="blank") +
             geom_histogram(aes(y=..density..),
-                             fill=colors[1])  +
+                             fill=graphsettings$colors[1])  +
             stat_function(fun=p)
 gmargy <- qplot(x=res[2,], geom="blank") +
-            geom_histogram(aes(y=..density..), fill=colors[2]) +
+            geom_histogram(aes(y=..density..), fill=graphsettings$colors[2]) +
             stat_function(fun=q) +
             coord_flip()
 empty <- ggplot()
@@ -58,4 +55,4 @@ g <- gridExtra::grid.arrange(gmargx, empty, gscatter, gmargy,
                             ncol=2, nrow=2,
                             widths=c(4, 1), heights=c(1, 4))
 
-# ggsave(filename="tvdistance2.pdf", plot = g3)
+ggsave(filename="../tvdistance2.pdf", plot = g)

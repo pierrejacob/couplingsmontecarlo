@@ -1,11 +1,13 @@
 rm(list=ls())
-source("commongrounds.R")
+set.seed(1)
+library(couplingsmontecarlo)
+graphsettings <- set_theme_chapter2()
+
+# rm(list=ls())
+# source("commongrounds.R")
 
 library(mvtnorm)
 library(hexbin)
-library(ggplot2)
-
-colors <- c(rgb(1, 0.1, 0.3), rgb(0.3, 0.1, 1))
 
 mu1 <- c(0, 0)
 mu2 <- c(3, 3)
@@ -26,13 +28,13 @@ zs <- t(apply(xs, 1, otmap))
 df <- data.frame(x=xs)
 
 ghex <- ggplot(df, aes(x=x.1, y=x.2)) +
-        geom_hex(fill=colors[1], alpha=0.75) +
+        geom_hex(fill=graphsettings$colors[1], alpha=0.75) +
         geom_hex(data=data.frame(zs), aes(x=X1, y=X2),
-                 fill=colors[2], alpha=0.75) +
+                 fill=graphsettings$colors[2], alpha=0.75) +
         ylim(-5,7) +
         xlim(-5, 10)
 ghex
-# ggsave(filename="2dnormalshex.pdf", plot=ghex, height=5, width=5)
+ggsave(filename="../2dnormalshex.pdf", plot=ghex, height=5, width=5)
 
 xseq <- seq(from=-4, to=4, length.out=15)
 xs <- expand.grid(xseq, xseq)
@@ -45,4 +47,4 @@ got <- ggplot(data.frame(x=xs[, 1], xend=zs[, 1],
 		ylim(-5, 7) +
 		xlim(-5, 10)
 got
-# ggsave(filename="2dnormalsOTmap.pdf", plot=got, height=5, width=5)
+ggsave(filename="../2dnormalsOTmap.pdf", plot=got, height=5, width=5)

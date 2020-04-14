@@ -1,10 +1,9 @@
 rm(list=ls())
+set.seed(1)
+library(couplingsmontecarlo)
+graphsettings <- set_theme_chapter2()
 
-library(ggplot2)
-theme_set(theme_void())
-library(gridExtra)
-
-colors <- c(rgb(1, 0.1, 0.3), rgb(0.3, 0.1, 1))
+# colors <- c(rgb(1, 0.1, 0.3), rgb(0.3, 0.1, 1))
 
 ## two distributions in [0,1]
 ## density p
@@ -36,16 +35,16 @@ xseq <- seq(from=1e-10, to=1-1e-10, length.out=1000)
 cdfp_seq <- sapply(xseq, cdfp)
 cdfq_seq <- sapply(xseq, cdfq)
 gcdf <- qplot(x=xseq, geom="blank") +
-            geom_line(aes(y=cdfp_seq), color=colors[1]) +
-            geom_line(aes(y=cdfq_seq), color=colors[2])
+            geom_line(aes(y=cdfp_seq), colour = graphsettings$colors[1]) +
+            geom_line(aes(y=cdfq_seq), colour = graphsettings$colors[2])
 gcdf
 
 ## two inverse cdf
 invcdfp_seq <- sapply(xseq, inversecdfp)
 invcdfq_seq <- sapply(xseq, inversecdfq)
 ginvcdf <- qplot(x=xseq, geom="blank") +
-            geom_line(aes(y=invcdfp_seq), color=colors[1]) +
-            geom_line(aes(y=invcdfq_seq), color=colors[2])
+            geom_line(aes(y=invcdfp_seq), colour = graphsettings$colors[1]) +
+            geom_line(aes(y=invcdfq_seq), colour = graphsettings$colors[2])
 ginvcdf
 
 ## optimal transport map
@@ -57,5 +56,5 @@ gotmap
 
 gridExtra::grid.arrange(gcdf, ginvcdf, gotmap, nrow=1)
 
-# ggsave(filename="cdfinverseotmap.pdf", plot=gridExtra::grid.arrange(gcdf, ginvcdf, gotmap, nrow=1),
-#        width=15, height=5)
+ggsave(filename="../cdfinverseotmap.pdf", plot=gridExtra::grid.arrange(gcdf, ginvcdf, gotmap, nrow=1),
+       width=15, height=5)

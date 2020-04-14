@@ -1,14 +1,11 @@
 rm(list=ls())
+set.seed(1)
+library(couplingsmontecarlo)
+graphsettings <- set_theme_chapter2()
 
 library(doParallel)
 library(doRNG)
 registerDoParallel(cores=10)
-
-library(ggplot2)
-theme_set(theme_void())
-library(gridExtra)
-
-colors <- c(rgb(1, 0.1, 0.3), rgb(0.3, 0.1, 1))
 
 ## two distributions in [0,1]
 ## density p
@@ -50,15 +47,15 @@ ys <- xys[2,]
 gsegments <- qplot(x=0, xend=1, y=xs, yend=ys, geom="blank") +
                 geom_segment(alpha=0.05)
 gmargleft <- qplot(x=xs, geom="blank") +
-                geom_histogram(aes(y=..density..), fill=colors[1]) +
+                geom_histogram(aes(y=..density..), fill=graphsettings$colors[1]) +
                 stat_function(fun=function(x) densityp(x))  +
                 coord_flip() +
                 scale_y_reverse()
 gmargright <- qplot(x=ys, geom="blank") +
-                geom_histogram(aes(y=..density..), fill=colors[2]) +
+                geom_histogram(aes(y=..density..), fill=graphsettings$colors[2]) +
                 stat_function(fun=function(x) densityq(x) / constantq) +
                 coord_flip()
 g <- gridExtra::grid.arrange(gmargleft, gsegments, gmargright,
                             ncol=3, nrow=1, widths=c(1,4,1), heights=4)
 
-# ggsave(filename="otarrangementwithmarginals.pdf", plot=g)
+ggsave(filename="../otarrangementwithmarginals.pdf", plot=g)
