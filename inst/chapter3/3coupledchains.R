@@ -5,7 +5,7 @@ set_theme_chapter3 <- function(){
   library(ggplot2)
   library(gridExtra)
   theme_set(theme_void())
-  colors <- c(rgb(.1, 0.5, 0.3), rgb(0.9, 0.8, 0.1))
+  colors <- c(rgb(0.8,0.5,0.2), rgb(0.2, 0.6, 0.9))
   return(list(colors = colors))
 }
 graphsettings <- set_theme_chapter3()
@@ -71,7 +71,8 @@ for (imcmc in 2:nmcmc){
   ychain[imcmc] <- res_$chain_state2
 }
 
-g <- qplot(x = 1:nmcmc, y = xchain, geom = "line") + geom_line(aes(y = ychain))
-ggsave(filename="../coupledmcmc.path.pdf", plot = g)
-# ggsave(filename = "coupledmcmc.path.pdf", plot = g, width = 10, height = 7)
+g <- qplot(x = 1:nmcmc, y = xchain, geom = "blank") + geom_line(colour = graphsettings$colors[1]) +
+  geom_line(aes(y = ychain), colour = graphsettings$colors[2])
+g
+ggsave(filename = "../coupledmcmc.path.pdf", plot = g, width = 10, height = 7)
 
