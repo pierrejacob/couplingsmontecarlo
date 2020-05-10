@@ -1,13 +1,6 @@
 rm(list=ls())
 set.seed(1)
 library(couplingsmontecarlo)
-set_theme_chapter3 <- function(){
-  library(ggplot2)
-  library(gridExtra)
-  theme_set(theme_void())
-  colors <- c(rgb(0.8,0.5,0.2), rgb(0.2, 0.6, 0.9))
-  return(list(colors = colors))
-}
 graphsettings <- set_theme_chapter3()
 # library(ggridges)
 # library(reshape2)
