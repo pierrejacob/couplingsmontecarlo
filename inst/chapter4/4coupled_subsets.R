@@ -46,6 +46,11 @@ for (imcmc in 2:nmcmc){
     state_history[imcmc,] <- state_current
 }
 ##
+## trace plot ...
+df <- data.frame(iteration = 1:50)
+df$label <- apply(state_history[df$iteration,], 1, function(v) paste0("{", paste(sort(v)-1, collapse = ","), "}"))
+ggplot(df, aes(y = iteration, x = 0, label = label)) + geom_text() + scale_y_reverse()
+
 ## Now, how do we know whether the chains converged?
 burnin <- 1e3
 table(as.numeric(state_history[burnin:nmcmc,])) / ((nmcmc-burnin+1)*k)
