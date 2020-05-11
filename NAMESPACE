@@ -3,5 +3,6 @@
 export(getmaxcoupling)
 export(set_theme_chapter1)
 export(set_theme_chapter2)
+export(set_theme_chapter3)
 importFrom(Rcpp,sourceCpp)
 useDynLib(couplingsmontecarlo)
