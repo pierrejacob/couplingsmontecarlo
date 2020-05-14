@@ -5,3 +5,31 @@ ising_gibbs_sweep_ <- function(state, proba_beta) {
     .Call('_couplingsmontecarlo_ising_gibbs_sweep_', PACKAGE = 'couplingsmontecarlo', state, proba_beta)
 }
 
+fast_rmvnorm_ <- function(nsamples, mean, covariance) {
+    .Call('_couplingsmontecarlo_fast_rmvnorm_', PACKAGE = 'couplingsmontecarlo', nsamples, mean, covariance)
+}
+
+fast_rmvnorm_cholesky_ <- function(nsamples, mean, cholesky) {
+    .Call('_couplingsmontecarlo_fast_rmvnorm_cholesky_', PACKAGE = 'couplingsmontecarlo', nsamples, mean, cholesky)
+}
+
+fast_dmvnorm_ <- function(x, mean, covariance) {
+    .Call('_couplingsmontecarlo_fast_dmvnorm_', PACKAGE = 'couplingsmontecarlo', x, mean, covariance)
+}
+
+fast_dmvnorm_cholesky_inverse_ <- function(x, mean, cholesky_inverse) {
+    .Call('_couplingsmontecarlo_fast_dmvnorm_cholesky_inverse_', PACKAGE = 'couplingsmontecarlo', x, mean, cholesky_inverse)
+}
+
+rmvnorm_max_coupling_ <- function(mu1, mu2, Sigma1, Sigma2) {
+    .Call('_couplingsmontecarlo_rmvnorm_max_coupling_', PACKAGE = 'couplingsmontecarlo', mu1, mu2, Sigma1, Sigma2)
+}
+
+rmvnorm_max_coupling_cholesky <- function(mu1, mu2, Cholesky1, Cholesky2, Cholesky_inverse1, Cholesky_inverse2) {
+    .Call('_couplingsmontecarlo_rmvnorm_max_coupling_cholesky', PACKAGE = 'couplingsmontecarlo', mu1, mu2, Cholesky1, Cholesky2, Cholesky_inverse1, Cholesky_inverse2)
+}
+
+rmvnorm_reflection_max_coupling_ <- function(mu1, mu2, Sigma_chol, inv_Sigma_chol) {
+    .Call('_couplingsmontecarlo_rmvnorm_reflection_max_coupling_', PACKAGE = 'couplingsmontecarlo', mu1, mu2, Sigma_chol, inv_Sigma_chol)
+}
+
