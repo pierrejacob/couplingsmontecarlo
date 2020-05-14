@@ -1,3 +1,5 @@
+## remove objects from current memory
+## and load packages
 rm(list=ls())
 set.seed(1)
 library(couplingsmontecarlo)
@@ -8,11 +10,10 @@ library(dplyr)
 library(doParallel)
 library(doRNG)
 registerDoParallel(cores = detectCores()-2)
-
+## package for the titanic data set
 library(titanic)
 ## let's define our data using titanic_train, remove rows with missing data, removing the column "name"
 summary(titanic_train)
-library(dplyr)
 df <- na.omit(titanic_train)
 X <- df %>% select(Pclass, Sex, Age, SibSp)
 Y <- df$Survived
@@ -98,7 +99,8 @@ cat("Effective sample size:", floor(ess), "out of", nsamples_is, "draws")
 ## seems to be a very good importance sampling proposal
 post_mean_is <- colSums(t(samples_is) * nw)
 
-## initialize chains
+##### next, MCMC part
+## initial distribution of the chains
 init_chains <- function(nchains){
     # samples_ <- t(mvtnorm::rmvnorm(nchains, post_mean_laplace, post_cov_laplace))
     samples_ <- t(mvtnorm::rmvnorm(nchains, rep(0, ncol(X)), diag(1, ncol(X), ncol(X))))
@@ -108,7 +110,7 @@ init_chains <- function(nchains){
 }
 ## the 'chains" contain "states" (actual values of the regression coefficients)
 ## as well as evaluated log-likelihood, gradients thereof, log prior and gradients thereof
-
+## HMC kernel performs one step of Hamiltonian Monte Carlo
 hmc_kernel <- function(chain, tuning){
   attach(tuning, warn.conflicts = F)
   dimstate <- nrow(chain$states)
@@ -143,7 +145,7 @@ hmc_kernel <- function(chain, tuning){
   }
   return(chain)
 }
-
+##
 ## function to perform HMC moves on two chains, using same noise
 coupled_hmc_kernel <- function(chain1, chain2, tuning){
     attach(tuning, warn.conflicts = F)
@@ -199,18 +201,20 @@ coupled_hmc_kernel <- function(chain1, chain2, tuning){
     }
     return(list(chain1 = chain1, chain2 = chain2, identical = FALSE))
 }
-
+## some tuning parameters for HMC
+## number of leap frog steps
 leapfrognsteps <- 10
+## step size of the leap frog integrator
 leapfrogepsilon <- 0.1
+## mass matrix = covariance of the momentum variable
+## taken as approximation of the posterior precision matrix
 massmatrix <- solve(post_cov_laplace)
+## inverse of mass matrix
 massmatrix_inv <- post_cov_laplace
 tuning <- list(leapfrognsteps = leapfrognsteps, leapfrogepsilon = leapfrogepsilon,
                massmatrix = massmatrix, massmatrix_inv = massmatrix_inv)
 
-# chain1 <- init_chains(1)
-# chain2 <- init_chains(1)
-# coupled_hmc_kernel(chain1, chain2, tuning)
-
+## run pair of HMC chains propagated with same noise
 run_coupled_hmc <- function(niterations, tuning){
     chain1 <- init_chains(1)
     chain2 <- init_chains(1)
@@ -226,19 +230,17 @@ run_coupled_hmc <- function(niterations, tuning){
     return(list(chain1_history = chain1_history,
                 chain2_history = chain2_history))
 }
-
-## run two HMC chains with common random numbers
 niterations <- 30
 chains_history_hmc <- run_coupled_hmc(niterations, tuning)
 chain1_history.df <- reshape2::melt(chains_history_hmc$chain1_history) %>% select(iteration=Var1, component=Var2, value) %>% mutate(ichain = 1)
 chain2_history.df <- reshape2::melt(chains_history_hmc$chain2_history) %>% select(iteration=Var1, component=Var2, value) %>% mutate(ichain = 2)
-## we can see chains contracting
+## we can see chains contracting to one another very rapidly
 ggplot(data = rbind(chain1_history.df, chain2_history.df),
-       aes(x = iteration, y = value, colour = factor(ichain))) + geom_line() +
-    facet_wrap(~component, scales = "free_y") + theme_minimal() + theme(legend.position = "none")  +
+       aes(x = iteration, y = value, colour = factor(ichain), group = interaction(component, ichain))) + geom_line() +
+    theme_minimal() + theme(legend.position = "none")  +
     scale_color_manual(values = graphsettings$colors)
 
-## repeat a number of times, and plot distance between chains
+## repeat a number of times, and plot squared distances between chains
 nrep <- 100
 indep_coupled_chains <- foreach(irep = 1:nrep) %dorng% {
     run_coupled_hmc(niterations, tuning)
@@ -250,9 +252,16 @@ squared_distances <- lapply(indep_coupled_chains, function(coupledchains){
 distances.df <- reshape2::melt(matrix(unlist(squared_distances), ncol = nrep)) %>% rename(iteration = Var1, ichain = Var2, distance = value)
 ## plot squared distances against iterations
 ggplot(distances.df,
-       aes(x = iteration, y = distance, group = ichain)) + geom_line(alpha = 0.2) + theme_minimal()
+       aes(x = iteration, y = distance, group = ichain)) + geom_line(alpha = 0.2) + theme_minimal() +
+  ylab("squared distance") +
+  scale_y_log10()
+## so after 30 steps or so pairs of chains tend to be very close to one another
 
-### next we construct a mixture of kernels so that chains can exactly meet
+## Next we construct a mixture of kernels so that chains can exactly meet
+## the mixture has one component equal to the HMC kernel implemented above
+## the other component is a random walk MH kernel with Normal proposals
+## because we can easily couple such RWMH kernel to generate exact meetings,
+## via maximal couplings... specifically, 'reflection-maximal' couplings here
 
 ## function to perform MH step for one chain
 rwmh_kernel <- function(chain, tuning){
@@ -276,6 +285,7 @@ rwmh_kernel <- function(chain, tuning){
     return(chain)
 }
 ## function to perform coupled MH step for two chains
+## with 'reflection-maximal' coupling of the proposals
 coupled_rwmh_kernel <- function(chain1, chain2, tuning){
     # propose new values
     proposals <- couplingsmontecarlo:::rmvnorm_reflection_max_coupling_(chain1$states[,1], chain2$states[,1],
@@ -307,12 +317,14 @@ coupled_rwmh_kernel <- function(chain1, chain2, tuning){
     return(list(chain1 = chain1, chain2 = chain2, identical = i_))
 }
 ##
+## add tuning parameters relating to covariance of Normal proposals
 tuning$Sigma <- diag(rep(1e-6, ncol(X)))
 tuning$Sigma_chol <- chol(tuning$Sigma)
 tuning$inv_Sigma_chol <- solve(chol(tuning$Sigma))
 
-## mixture of kernels
-tuning$hmc_weight <- 0.9
+## mixture of the kernels
+tuning$hmc_weight <- 0.8
+## single kernel
 mixkernel <- function(chain, tuning){
     if (runif(1) < tuning$hmc_weight){
         return(hmc_kernel(chain, tuning))
@@ -320,7 +332,7 @@ mixkernel <- function(chain, tuning){
         return(rwmh_kernel(chain, tuning))
     }
 }
-## mixture of coupled kernels
+## coupled kernel
 coupled_mixkernel <- function(chain1, chain2, tuning){
   if (runif(1) < tuning$hmc_weight){
     return(coupled_hmc_kernel(chain1, chain2, tuning))
@@ -384,11 +396,14 @@ sample_coupled_chains <- function(single_kernel, coupled_kernel, rinit, tuning, 
 }
 
 ## run pairs of chains until they meet
+## a number of times, in parallel
 coupled_chains_tilmeet <- foreach(irep = 1:250) %dorng% sample_coupled_chains(mixkernel, coupled_mixkernel, init_chains, tuning, m = 1, lag = 1)
 
 ## plot histogram of meeting times
 meeting_times <- sapply(coupled_chains_tilmeet, function(l) l$meetingtime)
-
 qplot(x = meeting_times, geom = "histogram") + theme_minimal() + xlab("meeting time") +
   theme(axis.text.x = element_text(size = 20), axis.title.x = element_text(size = 20))
+
+
+
 
