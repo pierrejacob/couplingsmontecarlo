@@ -1,3 +1,4 @@
+## this script implements a Gibbs sampler on graph colourings
 rm(list=ls())
 set.seed(1)
 library(couplingsmontecarlo)
@@ -10,21 +11,19 @@ library(doRNG)
 registerDoParallel(cores = detectCores()-2)
 # load igraph package to deal with graphs
 library(igraph)
-# function to plot graph
+# function to plot graphs
 custom_plot_graph <- function(g) plot(g, layout=layout_with_kk, vertex.label = NA)
-
-## create graph
+## create a small graph
 graph_name <- "Icosahedral"
 g <- igraph::make_graph(graph_name)
 ## number of vertices in the graph
 nvertices <- length(V(g))
 ## maximal degree of graph
 maxdegree <- max(igraph::degree(g))
-## number of colours
+## number of colours allowed
 q <- 2 * maxdegree + 2
 ## all possible colours
 all_colours <- colorRampPalette(RColorBrewer::brewer.pal(q, name = "Paired"))(q)
-# all_colours[1:2] <- graphsettings$colors
 ## greedy colouring to initialize chains
 rinit <- function(g){
     V(g)$color <- "black"
@@ -40,15 +39,15 @@ rinit <- function(g){
     }
     return(g)
 }
-
-
-## Markov chain
+## Markov chain,
 single_kernel <- function(g){
-    # choose a vertex
+    ## choose a vertex at random
     ivertex <- sample(1:nvertices, 1)
+    ## get neighbours
     n_i <- neighbors(g, ivertex)
-    # get colors not in neighbors
+    ## get colors not in neighbors
     legal_colours <- setdiff(all_colours, V(g)$color[n_i])
+    ## randomly sample one such colour
     V(g)$color[ivertex] <- sample(x = legal_colours, size = 1)
     return(list(g = g, ivertex = ivertex))
 }
@@ -65,7 +64,6 @@ for (imcmc in 1:nmcmc){
     ghistory[[imcmc]] <- g
     vertexhistory[[imcmc]] <- res_$ivertex
 }
-
 
 # pdf("../traceplot.graphcolourings.pdf")
 par(mfrow = c(4,4), mar = c(1,1,1,1))

@@ -1,3 +1,4 @@
+## implementation of coupled Gibbs sampler on graph colourings
 rm(list=ls())
 set.seed(1)
 library(couplingsmontecarlo)
@@ -53,17 +54,19 @@ rinit <- function(g){
     return(g)
 }
 
-
-## Markov chain
+## Markov chain, Gibbs sampler on graph colourings
 single_kernel <- function(g){
-    # choose a vertex
+    ## choose a vertex at random
     ivertex <- sample(1:nvertices, 1)
+    ## get neighbours
     n_i <- neighbors(g, ivertex)
-    # get colors not in neighbors
+    ## get colors not in neighbors
     legal_colours <- setdiff(all_colours, V(g)$color[n_i])
+    ## randomly sample one such colour
     V(g)$color[ivertex] <- sample(x = legal_colours, size = 1)
     return(g)
 }
+
 
 ## coupled kernel
 coupled_kernel <- function(g1, g2){
@@ -71,7 +74,6 @@ coupled_kernel <- function(g1, g2){
     ivertex <- sample(1:nvertices, 1)
     V(g1)$color[ivertex]
     V(g2)$color[ivertex]
-
     # find neighbors
     n_i <- neighbors(g1, ivertex)
     # get colors not in neighbors
@@ -111,21 +113,7 @@ lag <- 1e3
 for (iter in 1:lag){
     g1 <- single_kernel(g1)
 }
-## advance two chains for a number of steps
-nmcmc <- 1e3
-for (iter in 1:nmcmc){
-    coupled_kernel_results <- coupled_kernel(g1, g2)
-    g1 <- coupled_kernel_results$g1
-    g2 <- coupled_kernel_results$g2
-}
-
-par(mfrow = c(1,2))
-my_plot(g1)
-title(paste0("X at time ", 0))
-my_plot(g2)
-title(paste0("Y at time ", 0))
-#
-all(V(g1)$color == V(g2)$color)
+custom_plot_2graphs(g1, g2)
 
 ## construction of two chains with a lag L
 ## using single_kernel and coupled_kernel
@@ -169,6 +157,7 @@ meeting_times <- sapply(meetings, function(x) x$meetingtime)
 ghist <- qplot(x = meeting_times - lag, geom = "blank") + geom_histogram(aes(y=..density..))
 ghist <- ghist + xlab("meeting time - lag")
 ghist <- ghist + theme_minimal()
+ghist
 ## compute TV upper bounds
 tv_upper_bound_estimates <- function(meeting_times, L, t){
     return(mean(pmax(0,ceiling((meeting_times-L-t)/L))))
@@ -180,20 +169,4 @@ g_tvbounds <- g_tvbounds + ylab("TV upper bounds") + xlab("iteration")
 g_tvbounds <- g_tvbounds + labs(title = paste0("uniform colorings of ", graph_name, " graph"))
 g_tvbounds <- g_tvbounds + scale_y_continuous(breaks = (1:10)/10, limits = c(0,1.1))
 g_tvbounds <- g_tvbounds + theme_minimal()
-
 gridExtra::grid.arrange(ghist, g_tvbounds, nrow = 1)
-
-
-## plot two colours for each node
-par(mfrow = c(1,1))
-g1 <- rinit(g)
-plot(g1, layout=layout_with_kk, vertex.label = NA)
-plot(g2, layout=layout_with_kk, vertex.label = NA)
-
-# g <- make_ring(10)
-# values <- lapply(1:10, function(x) sample(1:10,3))
-# if (interactive()) {
-#     plot(g, vertex.shape="pie", vertex.pie=values,
-#          vertex.pie.color=list(heat.colors(5)),
-#          vertex.size=seq(10,30,length=10), vertex.label=NA)
-# }

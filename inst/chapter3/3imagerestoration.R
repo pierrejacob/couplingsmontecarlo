@@ -1,15 +1,16 @@
+## this script implements the image restoration Gibbs sampler
+## described in Gibbs 2004
 rm(list = ls())
 library(couplingsmontecarlo)
 graphsettings <- set_theme_chapter3()
 set.seed(1)
-
+## size of the image
 n <- 25
+## create image
 x <- matrix(0.1, nrow = n, ncol = n)
 x[5:15,5:15] <- 0.5
 x[3:10,3:10] <- 0.9
 x[15:n,10:n] <- 0.75
-
-image(x, col = gray.colors(10))
 df <- expand.grid(1:n,1:n)
 df$z <- as.numeric(x)
 gx <- ggplot(df, aes(x=Var1, y=Var2, fill=z)) +
@@ -17,7 +18,7 @@ gx <- ggplot(df, aes(x=Var1, y=Var2, fill=z)) +
 gx
 # ggsave(filename = "../imagerestoration1.pdf", gx)
 
-
+## generate noisy image
 # library(truncnorm)
 # y <- truncnorm::rtruncnorm(n = 1, a = 0, b = 1, mean = x, sd = 1e-5)
 y <- matrix(0, n, n)
@@ -32,17 +33,18 @@ df$z <- as.numeric(y)
 gy <- ggplot(df, aes(x=Var1, y=Var2, fill=z)) +
     geom_tile() + scale_fill_gradient(low = "black", high = "white") + theme(legend.position = "none")
 gy
-ggsave(filename = "../imagerestoration2.pdf", gy)
+# ggsave(filename = "../imagerestoration2.pdf", gy)
 
-##
+## initial distribution for the chain
 rinit <- function(){
-    return(matrix(runif(n*n), nrow = n, ncol = n))
+    return(matrix(runif(n*n, min = 0, max = 1), nrow = n, ncol = n))
 }
-##
+## generate initial state of the chain
 state <- rinit()
 gamma2 <- (4)^2
 sigma <- 0.2
 precision <- 1/(sigma^2)
+## Markov kernel, single site Gibbs sampler
 single_kernel <- function(state){
     ni <- 4
     for (i in 1:n){
@@ -56,8 +58,8 @@ single_kernel <- function(state){
     }
     return(state)
 }
-
-nmcmc <- xe3
+## run Markov chain for a number of steps
+nmcmc <- 1e4
 burnin <- 1e3
 state_history <- array(NA, dim = c(n, n, nmcmc))
 state_sum <- matrix(0, n, n)
@@ -68,10 +70,10 @@ for (imcmc in 1:nmcmc){
         state_sum <- state_sum + state
     }
 }
-
+## plot average state post burnin
 df$z <- as.numeric(state_sum/(nmcmc-burnin))
 grestore <- ggplot(df, aes(x=Var1, y=Var2, fill=z)) +
     geom_tile() + scale_fill_gradient(low = "black", high = "white") + theme(legend.position = "none")
 grestore
-ggsave(filename = "../imagerestoration3.pdf", grestore)
+# ggsave(filename = "../imagerestoration3.pdf", grestore)
 
