@@ -2,13 +2,6 @@
 rm(list=ls())
 set.seed(1)
 library(couplingsmontecarlo)
-set_theme_chapter4 <- function(){
-    library(ggplot2)
-    library(gridExtra)
-    theme_set(theme_void())
-    colors <- c(rgb(0.8,0.5,0.2), rgb(0.2, 0.6, 0.9))
-    return(list(colors = colors))
-}
 graphsettings <- set_theme_chapter4()
 library(ggridges)
 library(reshape2)
@@ -68,9 +61,10 @@ single_kernel <- function(g){
 }
 
 
-## coupled kernel
+## coupled Gibbs sampler kernel
+##
 coupled_kernel <- function(g1, g2){
-    # choose a vertex
+    # choose a vertex at random
     ivertex <- sample(1:nvertices, 1)
     V(g1)$color[ivertex]
     V(g2)$color[ivertex]
@@ -79,7 +73,7 @@ coupled_kernel <- function(g1, g2){
     # get colors not in neighbors
     legal_colours1 <- setdiff(all_colours, V(g1)$color[n_i])
     legal_colours2 <- setdiff(all_colours, V(g2)$color[n_i])
-    all_colours
+    ## sample max coupling of unif distributions over legal colours
     p1 <- rep(0, q)
     p2 <- rep(0, q)
     p1[match(legal_colours1, all_colours)] <- 1/length(legal_colours1)
@@ -98,9 +92,10 @@ coupled_kernel <- function(g1, g2){
         index1 <- sample(x = 1:q, size = 1, prob = r1)
         index2 <- sample(x = 1:q, size = 1, prob = r2)
     }
+    ## colour nodes
     V(g1)$color[ivertex] <- all_colours[index1]
     V(g2)$color[ivertex] <- all_colours[index2]
-    ##
+    ## return two graphs
     return(list(g1 = g1, g2 = g2))
 }
 
@@ -113,7 +108,10 @@ lag <- 1e3
 for (iter in 1:lag){
     g1 <- single_kernel(g1)
 }
+## plot graphs with two colours per node
+#pdf("../twographs.pdf")
 custom_plot_2graphs(g1, g2)
+#dev.off()
 
 ## construction of two chains with a lag L
 ## using single_kernel and coupled_kernel
@@ -146,8 +144,8 @@ sample_meetingtime <- function(single_kernel, coupled_kernel, rinit, lag = 1, ma
 }
 
 ## generate a number of meeting times, for a certain lag
-nrep <- 5e2
-lag <- 150
+nrep <- 1e3
+lag <- 200
 
 sample_meetingtime(single_kernel, coupled_kernel, rinit, lag)
 
@@ -166,7 +164,32 @@ niter <- (floor(1.1*max(meeting_times)-lag))
 upperbounds <- sapply(1:niter, function(t) tv_upper_bound_estimates(unlist(meeting_times), lag, t))
 g_tvbounds <- qplot(x = 1:niter, y = upperbounds, geom = "line")
 g_tvbounds <- g_tvbounds + ylab("TV upper bounds") + xlab("iteration")
-g_tvbounds <- g_tvbounds + labs(title = paste0("uniform colorings of ", graph_name, " graph"))
+# g_tvbounds <- g_tvbounds + labs(title = paste0("uniform colorings of ", graph_name, " graph"))
 g_tvbounds <- g_tvbounds + scale_y_continuous(breaks = (1:10)/10, limits = c(0,1.1))
 g_tvbounds <- g_tvbounds + theme_minimal()
 gridExtra::grid.arrange(ghist, g_tvbounds, nrow = 1)
+
+# pdf("../graphcolourings.meetingtimes.pdf")
+# ghist
+# dev.off()
+
+# pdf("../graphcolourings.tvbounds.pdf")
+# g_tvbounds
+# dev.off()
+
+hist_noplot <- hist(meeting_times - lag, plot = F, nclass = 30)
+xgrid <- c(min(hist_noplot$breaks), hist_noplot$mids, max(hist_noplot$breaks))
+densitygrid <- c(0, hist_noplot$density, 0)
+g_tvbounds <- qplot(x = 1:niter, y = upperbounds, geom = "line")
+g_tvbounds <- g_tvbounds + ylab("TV upper bounds") + xlab("iteration")
+g_tvbounds <- g_tvbounds + scale_y_continuous(breaks = c(0,1), limits = c(0,1.1))
+g_tvbounds <- g_tvbounds + geom_ribbon(data=data.frame(x = xgrid,
+                                         ymin = rep(0, length(xgrid)),
+                                         y = densitygrid/max(densitygrid)),
+                         aes(x= x, ymin = ymin, ymax = y, y=NULL), alpha = .3, fill = graphsettings$colors[2]) + geom_line()
+g_tvbounds <- g_tvbounds + theme(axis.text.x = element_text(size = 20), axis.title.x = element_text(size = 20),
+                                 axis.text.y = element_text(size = 20), axis.title.y = element_text(size = 20, angle = 90))
+
+pdf("../graphcolourings.tvbounds.pdf", width = 10, height = 5)
+print(g_tvbounds)
+dev.off()

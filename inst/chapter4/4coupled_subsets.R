@@ -1,16 +1,10 @@
 ## this implements a coupling
-## of the sampler in Section 6.2 of Rapidly Mixing Markov Chains: A Comparison of Techniques  by Venkatesan Guruswami
+## of the sampler in Section 6.2 of Rapidly Mixing Markov Chains: A Comparison of Techniques
+## by Venkatesan Guruswami
 ## sampling uniformly subsets of size k from set of n elements
 rm(list=ls())
 set.seed(1)
 library(couplingsmontecarlo)
-set_theme_chapter4 <- function(){
-    library(ggplot2)
-    library(gridExtra)
-    theme_set(theme_void())
-    colors <- c(rgb(0.8,0.5,0.2), rgb(0.2, 0.6, 0.9))
-    return(list(colors = colors))
-}
 graphsettings <- set_theme_chapter4()
 library(ggridges)
 library(reshape2)
@@ -154,7 +148,10 @@ lag <- 30
 meetings <- foreach(irep = 1:nrep) %dorng% sample_meetingtime(single_kernel, coupled_kernel, rinit, lag)
 meeting_times <- sapply(meetings, function(x) x$meetingtime)
 ## plot meeting times
-hist(meeting_times - lag)
+ghist <- qplot(x = meeting_times - lag, geom = "blank") + geom_histogram(aes(y=..density..))
+ghist <- ghist + xlab("meeting time - lag")
+ghist <- ghist + theme_minimal()
+ghist
 ## compute TV upper bounds
 tv_upper_bound_estimates <- function(meeting_times, L, t){
     return(mean(pmax(0,ceiling((meeting_times-L-t)/L))))
@@ -163,8 +160,40 @@ niter <- 50
 upperbounds <- sapply(1:niter, function(t) tv_upper_bound_estimates(unlist(meeting_times), lag, t))
 g_tvbounds <- qplot(x = 1:niter, y = upperbounds, geom = "line")
 g_tvbounds <- g_tvbounds + ylab("TV upper bounds") + xlab("iteration")
-g_tvbounds <- g_tvbounds + labs(title = "uniform sampling of subsets of size k") + ylim(0,1)
-g_tvbounds + theme_minimal()
+g_tvbounds <- g_tvbounds + theme_minimal() + scale_y_continuous(breaks = (1:10)/10, limits = c(0,1.1))
+
+# pdf("../subsets.meetingtimes.pdf")
+ghist
+# dev.off()
+
+# pdf("../subsets.tvbounds.pdf")
+hist_noplot <- hist(meeting_times - lag, plot = F, nclass = 50, prob = T)
+g_tvbounds + geom_ribbon(data=data.frame(x = hist_noplot$mids,
+                                         ymin = rep(0, length(hist_noplot$density)),
+                                         y = hist_noplot$density/max(hist_noplot$density)),
+                         aes(x= x, ymin = ymin, ymax = y, y=NULL), alpha = 0.5, fill = graphsettings$colors[1]) + geom_line()
+# dev.off()
+
+
+
+hist_noplot <- hist(meeting_times - lag, plot = F, nclass = 30)
+xgrid <- c(min(hist_noplot$breaks), hist_noplot$mids, max(hist_noplot$breaks))
+densitygrid <- c(0, hist_noplot$density, 0)
+g_tvbounds <- qplot(x = 1:niter, y = upperbounds, geom = "line")
+g_tvbounds <- g_tvbounds + ylab("TV upper bounds") + xlab("iteration")
+g_tvbounds <- g_tvbounds + scale_y_continuous(breaks = c(0,1), limits = c(0,1.1))
+g_tvbounds <- g_tvbounds + geom_ribbon(data=data.frame(x = xgrid,
+                                                       ymin = rep(0, length(xgrid)),
+                                                       y = densitygrid/max(densitygrid)),
+                                       aes(x= x, ymin = ymin, ymax = y, y=NULL), alpha = .3, fill = graphsettings$colors[2]) + geom_line()
+g_tvbounds <- g_tvbounds + theme(axis.text.x = element_text(size = 20), axis.title.x = element_text(size = 20),
+                                 axis.text.y = element_text(size = 20), axis.title.y = element_text(size = 20, angle = 90))
+g_tvbounds
+pdf("../subsets.tvbounds.pdf", width = 10, height = 5)
+print(g_tvbounds)
+dev.off()
+
+
 
 ## this suggest that 20 or 30 steps might be enough
 ## we can check that by producing independent chains for this many steps
@@ -192,5 +221,17 @@ freq_subsets <- foreach (isubset = 1:choose(n,k), .combine = c) %dopar% {
 plot(freq_subsets, ylim = c(0, 2/choose(n,k)))
 abline(h = 1/choose(n,k))
 
+##
+state1 <- rinit(); state2 <- rinit()
+# move first chain for 'lag' iterations
+time <- 0
+for (t in 1:lag){
+    time <- time + 1
+    state1 <- single_kernel(state1)
+}
 
+printsubset <- function(v) paste0("{", paste(sort(v), collapse = ","), "}")
+state1 <- c(1,2,3)
+state2 <- c(1,5,9)
+printsubset(state1)
 

@@ -3,7 +3,7 @@
 rm(list=ls())
 set.seed(1)
 library(couplingsmontecarlo)
-graphsettings <- set_theme_chapter4()
+graphsettings <- set_theme_chapter3()
 library(ggridges)
 library(reshape2)
 library(dplyr)
@@ -112,38 +112,38 @@ init_chains <- function(nchains){
 ## as well as evaluated log-likelihood, gradients thereof, log prior and gradients thereof
 ## HMC kernel performs one step of Hamiltonian Monte Carlo
 hmc_kernel <- function(chain, tuning){
-  attach(tuning, warn.conflicts = F)
-  dimstate <- nrow(chain$states)
-  ## generate momenta variables
-  initial_momenta <- t(mvtnorm:::rmvnorm(1, rep(0, dimstate), massmatrix))
-  grad_ <- chain$lls$gradients + chain$lps$gradients
-  positions <- chain$states
-  ## leap frog integrator
-  momenta <- initial_momenta + leapfrogepsilon * grad_ / 2
-  for (step in 1:leapfrognsteps){
-    positions <- positions + leapfrogepsilon * massmatrix_inv %*% momenta
-    eval_prior <- logprior(positions, sigma2 = sigma2prior)
-    eval_ll    <- loglikelihood(positions, Y, as.matrix(X))
-    if (step != leapfrognsteps){
-      momenta <- momenta + leapfrogepsilon * (eval_prior$gradients + eval_ll$gradients)
+    attach(tuning, warn.conflicts = F)
+    dimstate <- nrow(chain$states)
+    ## generate momenta variables
+    initial_momenta <- t(mvtnorm:::rmvnorm(1, rep(0, dimstate), massmatrix))
+    grad_ <- chain$lls$gradients + chain$lps$gradients
+    positions <- chain$states
+    ## leap frog integrator
+    momenta <- initial_momenta + leapfrogepsilon * grad_ / 2
+    for (step in 1:leapfrognsteps){
+        positions <- positions + leapfrogepsilon * massmatrix_inv %*% momenta
+        eval_prior <- logprior(positions, sigma2 = sigma2prior)
+        eval_ll    <- loglikelihood(positions, Y, as.matrix(X))
+        if (step != leapfrognsteps){
+            momenta <- momenta + leapfrogepsilon * (eval_prior$gradients + eval_ll$gradients)
+        }
     }
-  }
-  momenta <- momenta + leapfrogepsilon * (eval_prior$gradients + eval_ll$gradients) / 2
-  ## Now MH acceptance step
-  proposed_pdfs <- eval_prior$evals     +  eval_ll$evals
-  current_pdfs  <- chain$lps$evals + chain$lls$evals
-  mhratios <- proposed_pdfs - current_pdfs
-  mhratios <- mhratios + (-0.5 * colSums(momenta * (massmatrix_inv %*% momenta))) - (-0.5 * colSums(initial_momenta * (massmatrix_inv %*% initial_momenta)))
-  if (any(is.na(mhratios))) mhratios[is.na(mhratios)] <- -Inf
-  accept <- log(runif(1)) < mhratios
-  if (accept){
-    chain$states              <- positions
-    chain$lps$evals    <- eval_prior$evals
-    chain$lps$gradients <- eval_prior$gradients
-    chain$lls$evals             <- eval_ll$evals
-    chain$lls$gradients    <- eval_ll$gradients
-  }
-  return(chain)
+    momenta <- momenta + leapfrogepsilon * (eval_prior$gradients + eval_ll$gradients) / 2
+    ## Now MH acceptance step
+    proposed_pdfs <- eval_prior$evals     +  eval_ll$evals
+    current_pdfs  <- chain$lps$evals + chain$lls$evals
+    mhratios <- proposed_pdfs - current_pdfs
+    mhratios <- mhratios + (-0.5 * colSums(momenta * (massmatrix_inv %*% momenta))) - (-0.5 * colSums(initial_momenta * (massmatrix_inv %*% initial_momenta)))
+    if (any(is.na(mhratios))) mhratios[is.na(mhratios)] <- -Inf
+    accept <- log(runif(1)) < mhratios
+    if (accept){
+        chain$states              <- positions
+        chain$lps$evals    <- eval_prior$evals
+        chain$lps$gradients <- eval_prior$gradients
+        chain$lls$evals             <- eval_ll$evals
+        chain$lls$gradients    <- eval_ll$gradients
+    }
+    return(chain)
 }
 ##
 ## function to perform HMC moves on two chains, using same noise
@@ -213,49 +213,6 @@ massmatrix <- solve(post_cov_laplace)
 massmatrix_inv <- post_cov_laplace
 tuning <- list(leapfrognsteps = leapfrognsteps, leapfrogepsilon = leapfrogepsilon,
                massmatrix = massmatrix, massmatrix_inv = massmatrix_inv)
-
-## run pair of HMC chains propagated with same noise
-run_coupled_hmc <- function(niterations, tuning){
-    chain1 <- init_chains(1)
-    chain2 <- init_chains(1)
-    chain1_history <- matrix(NA, niterations, nrow(chain1$states))
-    chain2_history <- matrix(NA, niterations, nrow(chain2$states))
-    for (iteration in 1:niterations){
-        chmc_results <- coupled_hmc_kernel(chain1, chain2, tuning)
-        chain1 <- chmc_results$chain1
-        chain2 <- chmc_results$chain2
-        chain1_history[iteration,] <- chain1$states
-        chain2_history[iteration,] <- chain2$states
-    }
-    return(list(chain1_history = chain1_history,
-                chain2_history = chain2_history))
-}
-niterations <- 30
-chains_history_hmc <- run_coupled_hmc(niterations, tuning)
-chain1_history.df <- reshape2::melt(chains_history_hmc$chain1_history) %>% select(iteration=Var1, component=Var2, value) %>% mutate(ichain = 1)
-chain2_history.df <- reshape2::melt(chains_history_hmc$chain2_history) %>% select(iteration=Var1, component=Var2, value) %>% mutate(ichain = 2)
-## we can see chains contracting to one another very rapidly
-ggplot(data = rbind(chain1_history.df, chain2_history.df),
-       aes(x = iteration, y = value, colour = factor(ichain), group = interaction(component, ichain))) + geom_line() +
-    theme_minimal() + theme(legend.position = "none")  +
-    scale_color_manual(values = graphsettings$colors)
-
-## repeat a number of times, and plot squared distances between chains
-nrep <- 100
-indep_coupled_chains <- foreach(irep = 1:nrep) %dorng% {
-    run_coupled_hmc(niterations, tuning)
-}
-## compute squared euclidean distance between chains
-squared_distances <- lapply(indep_coupled_chains, function(coupledchains){
-    squareddist_ <- apply(coupledchains$chain1_history - coupledchains$chain2_history, 1, function(v) sum(v^2))
-})
-distances.df <- reshape2::melt(matrix(unlist(squared_distances), ncol = nrep)) %>% rename(iteration = Var1, ichain = Var2, distance = value)
-## plot squared distances against iterations
-ggplot(distances.df,
-       aes(x = iteration, y = distance, group = ichain)) + geom_line(alpha = 0.2) + theme_minimal() +
-  ylab("squared distance") +
-  scale_y_log10()
-## so after 30 steps or so pairs of chains tend to be very close to one another
 
 ## Next we construct a mixture of kernels so that chains can exactly meet
 ## the mixture has one component equal to the HMC kernel implemented above
@@ -334,106 +291,95 @@ mixkernel <- function(chain, tuning){
 }
 ## coupled kernel
 coupled_mixkernel <- function(chain1, chain2, tuning){
-  if (runif(1) < tuning$hmc_weight){
-    return(coupled_hmc_kernel(chain1, chain2, tuning))
-  } else {
-    return(coupled_rwmh_kernel(chain1, chain2, tuning))
-  }
+    if (runif(1) < tuning$hmc_weight){
+        return(coupled_hmc_kernel(chain1, chain2, tuning))
+    } else {
+        return(coupled_rwmh_kernel(chain1, chain2, tuning))
+    }
 }
 
 ## function to sample coupled chains until they meet
 sample_coupled_chains <- function(single_kernel, coupled_kernel, rinit, tuning, m = 1, lag = 1,
-                                   max_iterations = Inf, preallocate = 10){
-  starttime <- Sys.time()
-  state1 <- rinit(1)
-  state2 <- rinit(1)
-  dimstate <- nrow(state1$states)
-  nrowsamples1 <- m + preallocate + lag
-  samples1 <- matrix(nrow = nrowsamples1, ncol = dimstate)
-  samples2 <- matrix(nrow = nrowsamples1 - lag, ncol = dimstate)
-  samples1[1, ] <- state1$states
-  samples2[1, ] <- state2$states
-  time <- 0
-  for (t in 1:lag) {
-    time <- time + 1
-    state1 <- single_kernel(state1, tuning)
-    samples1[time + 1, ] <- state1$states
-  }
-  meetingtime <- Inf
-  while ((time < max(meetingtime, m)) && (time < max_iterations)) {
-    time <- time + 1
-    if (is.finite(meetingtime)) {
-      state1 <- single_kernel(state1, tuning)
-      state2 <- state1
+                                  max_iterations = Inf, preallocate = 10){
+    starttime <- Sys.time()
+    state1 <- rinit(1)
+    state2 <- rinit(1)
+    dimstate <- nrow(state1$states)
+    nrowsamples1 <- m + preallocate + lag
+    samples1 <- matrix(nrow = nrowsamples1, ncol = dimstate)
+    samples2 <- matrix(nrow = nrowsamples1 - lag, ncol = dimstate)
+    samples1[1, ] <- state1$states
+    samples2[1, ] <- state2$states
+    time <- 0
+    for (t in 1:lag) {
+        time <- time + 1
+        state1 <- single_kernel(state1, tuning)
+        samples1[time + 1, ] <- state1$states
     }
-    else {
-      res_coupled_kernel <- coupled_kernel(state1, state2, tuning)
-      state1 <- res_coupled_kernel$chain1
-      state2 <- res_coupled_kernel$chain2
-      if (res_coupled_kernel$identical) {
-        meetingtime <- time
-      }
+    meetingtime <- Inf
+    while ((time < max(meetingtime, m)) && (time < max_iterations)) {
+        time <- time + 1
+        if (is.finite(meetingtime)) {
+            state1 <- single_kernel(state1, tuning)
+            state2 <- state1
+        }
+        else {
+            res_coupled_kernel <- coupled_kernel(state1, state2, tuning)
+            state1 <- res_coupled_kernel$chain1
+            state2 <- res_coupled_kernel$chain2
+            if (res_coupled_kernel$identical) {
+                meetingtime <- time
+            }
+        }
+        if ((time + 1) > nrowsamples1) {
+            new_rows <- nrowsamples1
+            nrowsamples1 <- nrowsamples1 + new_rows
+            samples1 <- rbind(samples1, matrix(NA, nrow = new_rows,
+                                               ncol = dimstate))
+            samples2 <- rbind(samples2, matrix(NA, nrow = new_rows,
+                                               ncol = dimstate))
+        }
+        samples1[time + 1, ] <- state1$states
+        samples2[time - lag + 1, ] <- state2$states
     }
-    if ((time + 1) > nrowsamples1) {
-      new_rows <- nrowsamples1
-      nrowsamples1 <- nrowsamples1 + new_rows
-      samples1 <- rbind(samples1, matrix(NA, nrow = new_rows,
-                                         ncol = dimstate))
-      samples2 <- rbind(samples2, matrix(NA, nrow = new_rows,
-                                         ncol = dimstate))
-    }
-    samples1[time + 1, ] <- state1$states
-    samples2[time - lag + 1, ] <- state2$states
-  }
-  samples1 <- samples1[1:(time + 1), , drop = F]
-  samples2 <- samples2[1:(time - lag + 1), , drop = F]
-  cost <- lag + 2 * (meetingtime - lag) + max(0, time - meetingtime)
-  currenttime <- Sys.time()
-  elapsedtime <- as.numeric(lubridate::as.duration(lubridate::ymd_hms(currenttime) -
-                                                     lubridate::ymd_hms(starttime)), "seconds")
-  return(list(samples1 = samples1, samples2 = samples2, meetingtime = meetingtime,
-              iteration = time, elapsedtime = elapsedtime, cost = cost))
+    samples1 <- samples1[1:(time + 1), , drop = F]
+    samples2 <- samples2[1:(time - lag + 1), , drop = F]
+    cost <- lag + 2 * (meetingtime - lag) + max(0, time - meetingtime)
+    currenttime <- Sys.time()
+    elapsedtime <- as.numeric(lubridate::as.duration(lubridate::ymd_hms(currenttime) -
+                                                         lubridate::ymd_hms(starttime)), "seconds")
+    return(list(samples1 = samples1, samples2 = samples2, meetingtime = meetingtime,
+                iteration = time, elapsedtime = elapsedtime, cost = cost))
 }
 
 ## run pairs of chains until they meet
 ## a number of times, in parallel
-coupled_chains_tilmeet <- foreach(irep = 1:250) %dorng% sample_coupled_chains(mixkernel, coupled_mixkernel, init_chains, tuning, m = 1, lag = 1)
+nrep <- 50
+m <- 50
+lag <- 10
+
+coupled_chains <- foreach(irep = 1:nrep) %dorng% sample_coupled_chains(mixkernel, coupled_mixkernel, init_chains, tuning, m = m, lag = lag)
 
 ## plot histogram of meeting times
-meeting_times <- sapply(coupled_chains_tilmeet, function(l) l$meetingtime)
-qplot(x = meeting_times, geom = "histogram") + theme_minimal() + xlab("meeting time") +
-  theme(axis.text.x = element_text(size = 20), axis.title.x = element_text(size = 20))
+meeting_times <- sapply(coupled_chains, function(l) l$meetingtime)
+qplot(x = meeting_times - lag, geom = "histogram") + theme_minimal() + xlab("meeting time - lag") +
+    theme(axis.text.x = element_text(size = 20), axis.title.x = element_text(size = 20))
 
-nrep <- 5e2
-lag <- 50
-coupled_chains_tilmeet <- foreach(irep = 1:nrep) %dorng% sample_coupled_chains(mixkernel, coupled_mixkernel, init_chains, tuning, m = 1, lag = lag)
-meeting_times <- sapply(coupled_chains_tilmeet, function(l) l$meetingtime)
-
-hist_noplot <- hist(meeting_times - lag, plot = F, nclass = 30)
-xgrid <- c(min(hist_noplot$breaks), hist_noplot$mids, max(hist_noplot$breaks))
-densitygrid <- c(0, hist_noplot$density, 0)
-## compute TV upper bounds
 tv_upper_bound_estimates <- function(meeting_times, L, t){
-  return(mean(pmax(0,ceiling((meeting_times-L-t)/L))))
+    return(mean(pmax(0,ceiling((meeting_times-L-t)/L))))
 }
 niter <- (floor(1.1*max(meeting_times)-lag))
 upperbounds <- sapply(1:niter, function(t) tv_upper_bound_estimates(unlist(meeting_times), lag, t))
-
-
 g_tvbounds <- qplot(x = 1:niter, y = upperbounds, geom = "line")
 g_tvbounds <- g_tvbounds + ylab("TV upper bounds") + xlab("iteration")
-g_tvbounds <- g_tvbounds + scale_y_continuous(breaks = c(0,1), limits = c(0,1.1))
-g_tvbounds <- g_tvbounds + geom_ribbon(data=data.frame(x = xgrid,
-                                                       ymin = rep(0, length(xgrid)),
-                                                       y = densitygrid/max(densitygrid)),
-                                       aes(x= x, ymin = ymin, ymax = y, y=NULL), alpha = .3, fill = graphsettings$colors[2]) + geom_line()
-g_tvbounds <- g_tvbounds + theme(axis.text.x = element_text(size = 20), axis.title.x = element_text(size = 20),
-                                 axis.text.y = element_text(size = 20), axis.title.y = element_text(size = 20, angle = 90))
-
-pdf("../hmctitanic.tvbounds.pdf", width = 10, height = 5)
-print(g_tvbounds)
-dev.off()
+# g_tvbounds <- g_tvbounds + labs(title = paste0("uniform colorings of ", graph_name, " graph"))
+g_tvbounds <- g_tvbounds + scale_y_continuous(breaks = (1:10)/10, limits = c(0,1.1))
+g_tvbounds <- g_tvbounds + theme_minimal()
+g_tvbounds
 
 
-
+hestim <- lapply(coupled_chains, function(cc) t(unbiasedmcmc::H_bar(cc, k = 10, m = m)))
+hestim <- lapply(hestim, function(l) data.frame(l)) %>% bind_rows()
+# colMeans(hestim)
+apply(hestim, 2, var)
 

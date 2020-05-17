@@ -24,3 +24,12 @@ set_theme_chapter3 <- function(){
     colors <- c(rgb(0.8,0.5,0.2), rgb(0.2, 0.6, 0.9))
     return(list(colors = colors))
 }
+
+#'@export
+set_theme_chapter4 <- function(){
+    library(ggplot2)
+    library(gridExtra)
+    theme_set(theme_void())
+    colors <- c(rgb(0.8,0.5,0.4), rgb(0.5, 0.3, 0.8))
+    return(list(colors = colors))
+}
