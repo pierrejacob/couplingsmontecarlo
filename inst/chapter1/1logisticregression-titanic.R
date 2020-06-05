@@ -237,7 +237,7 @@ g <- ggpairs(data.frame(allchains_mh), lower=list(continuous=my_fn),
         theme(strip.text.x = element_text(size = 12, vjust = 1),
               axis.text.x = element_text(size = 5, angle = -45))
 # g
-# ggsave(filename = "../logistitanic-pairs.pdf", plot = g, width = 10, height = 10)
+ggsave(filename = "../logistitanic-pairs.pdf", plot = g, width = 10, height = 10)
 
 ## next we can predict the survival probabilities of the two
 ## main characters in Titanic

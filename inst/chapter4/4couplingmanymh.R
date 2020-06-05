@@ -4,14 +4,7 @@
 rm(list=ls())
 set.seed(1)
 library(couplingsmontecarlo)
-set_theme_chapte5 <- function(){
-    library(ggplot2)
-    library(gridExtra)
-    theme_set(theme_void())
-    colors <- c(rgb(0.3,0.45,0.8), rgb(0.1, 0.35, 0.35))
-    return(list(colors = colors))
-}
-graphsettings <- set_theme_chapte5()
+graphsettings <- set_theme_chapter4()
 library(reshape2)
 library(dplyr)
 
@@ -133,7 +126,7 @@ g <- ggplot(data = states.df, aes(x = iteration, y = value, group = ichain)) + g
 g <- g + geom_vline(xintercept = meetingtime+1, colour = graphsettings$colors[2], linetype = 1)
 g
 
-ggsave(filename = "../5coupledmh.pdf", plot = g, width = 10, height = 5)
+ggsave(filename = "../4coupledmh.pdf", plot = g, width = 10, height = 5)
 
 # xgrid <- seq(from = +1, to = 16, length.out = 1e2)
 # df1 <- data.frame()
@@ -153,6 +146,6 @@ ggsave(filename = "../5coupledmh.pdf", plot = g, width = 10, height = 5)
 #     coord_flip()
 # g
 #
-# # ggsave(plot = g, filename = "../5overlapproposal.pdf", width = 10, height = 5)
+# # ggsave(plot = g, filename = "../4overlapproposal.pdf", width = 10, height = 5)
 
 

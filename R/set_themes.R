@@ -3,7 +3,7 @@ set_theme_chapter1 <- function(){
     library(ggplot2)
     library(gridExtra)
     theme_set(theme_void())
-    colors <- c(rgb(.75, 0.75, 0.75), rgb(0.1, 0.5, .8))
+    colors <- c(rgb(.75, 0.75, 0.75), rgb(0.255, 0.412, 0.882))
     return(list(colors = colors))
 }
 

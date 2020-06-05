@@ -34,4 +34,5 @@ ghist <- qplot(x = sapply(runif(1e4), inversecdfp), geom = "blank") + geom_histo
 
 g <- gridExtra::grid.arrange(gdensity, gcdf, ggrad, ghist,
                              ncol=2, nrow=2)
+g
 ggsave(filename = "../characterizations.pdf", plot = g)

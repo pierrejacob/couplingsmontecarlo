@@ -10,14 +10,7 @@ library(ggridges)
 library(reshape2)
 library(dplyr)
 set.seed(6)
-set_theme_chapte5 <- function(){
-  library(ggplot2)
-  library(gridExtra)
-  theme_set(theme_void())
-  colors <- c(rgb(0.1,0.7,0.4), rgb(0.1, 0.35, 0.35))
-  return(list(colors = colors))
-}
-graphsettings <- set_theme_chapte5()
+graphsettings <- set_theme_chapter4()
 
 nstates <- 5
 
@@ -56,7 +49,7 @@ gmaps <- ggplot(df_from_to, aes(x = 0, xend = 1, y = from, yend = to)) + geom_se
 gmaps <- gmaps + geom_point(size = 5, shape = 1) + xlab('') + ylab('')
 gmaps <- gmaps + coord_flip() + facet_wrap(~ time, nrow = 1) + theme(strip.background = element_blank(), strip.text.x = element_blank())
 gmaps
-ggsave(filename = "../5maps.pdf", plot = gmaps, width = 10, height = 5)
+ggsave(filename = "../4maps.pdf", plot = gmaps, width = 10, height = 5)
 #
 g <- ggplot(df_from_to, aes(x = time, xend = time + 1, y = from, yend = to))
 g <- g + geom_point(size = 5, shape = 1) + xlab('') + ylab('')
@@ -68,7 +61,7 @@ g <- g + theme_test() + theme(axis.text.x = element_text(size = 20), axis.text.y
 g <- g + theme(panel.grid.major.x = element_line(colour = 'grey'))
 g
 
-ggsave(filename = "../5cftp.pdf", plot = g, width = 10, height = 5)
+ggsave(filename = "../4cftp.pdf", plot = g, width = 10, height = 5)
 #
 # ##
 # ## CFTP
